@@ -109,13 +109,19 @@
     }
     .field input.amount { text-align: right; font-size: 18px; }
 
+    /* ---- 入力画面：ラベルと入力欄を横並びにする ---- */
+    .input-screen .field { display: flex; align-items: center; gap: 8px; }
+    .input-screen .field > label { flex: none; width: 5.5em; margin-bottom: 0; }
+    /* 入力欄は全角8文字程度が入る幅に固定する */
+    .input-screen .field input, .input-screen .combo-row { flex: none; width: 190px; }
+    .input-screen .combo-row input { flex: 1; width: auto; min-width: 0; }
+
     /* ---- 候補付き入力欄 ---- */
-    .combo { position: relative; }
-    .combo-row { display: flex; }
+    .combo-row { position: relative; display: flex; }
     .combo-row input[type="text"] { border-radius: var(--radius) 0 0 var(--radius); }
     .combo-toggle {
       flex: none;
-      width: 44px;
+      width: 40px;
       border: 1px solid var(--gray-300);
       border-left: 0;
       border-radius: 0 var(--radius) var(--radius) 0;
@@ -413,8 +419,7 @@
       );
       const root = h('div', { class: 'field combo' },
         h('label', { for: id, text: label }),
-        h('div', { class: 'combo-row' }, input, toggle),
-        list
+        h('div', { class: 'combo-row' }, input, toggle, list)
       );
       toggle.addEventListener('click', () => root.classList.toggle('is-open'));
       return { node: root, getValue: () => input.value };
@@ -487,7 +492,7 @@
         render({ type: 'success', text: '記録しました' });
       };
 
-      const screen = h('div', { class: 'screen' },
+      const screen = h('div', { class: 'screen input-screen' },
         h('h2', { text: 'カード使用を記録' }),
         h('div', { class: 'field' }, h('label', { for: dateId, text: '日付' }), dateInput),
         h('div', { class: 'field' },
