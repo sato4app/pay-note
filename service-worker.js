@@ -1,8 +1,16 @@
-const CACHE_NAME = 'paynote-v4';
+const CACHE_NAME = 'paynote-v5';
 const CACHE_URLS = [
   './',
   './index.html',
   './manifest.json',
+  './style.css',
+  './js/app.js',
+  './js/store.js',
+  './js/ui.js',
+  './js/screen-record.js',
+  './js/screen-history.js',
+  './js/screen-settings.js',
+  './js/site.js',
   './icons/icon-192.png',
   './icons/icon-512.png',
   './icons/favicon.ico'

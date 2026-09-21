@@ -50,15 +50,35 @@ localStorage に保存する（キー: `paynote_records` / `paynote_cards` / `pa
 
 ### 動作環境・技術構成
 
-- 単一ファイル構成（`index.html`）。ビルド不要。
-- フレームワークを使わない素の JavaScript と CSS のみ。外部ライブラリの読み込みはない
-  （QR コード表示時を除く）。
+- フレームワークを使わない素の JavaScript（ES モジュール）と CSS のみ。ビルド不要。
+  外部ライブラリの読み込みはない（QR コード表示時を除く）。
 - PWA 対応（`manifest.json` + `service-worker.js`）。ホーム画面に追加して単独アプリとして起動でき、
   2 回目以降はオフラインでも動作する。
 - ヘッダーの **PayNote** をタップすると更新チェックを行う（画面上の表示はなし）。
-  配信中の `index.html` とキャッシュを比較し、異なっていればキャッシュを破棄して最新版を読み込み直す。
+  キャッシュ済みのアプリ資材（HTML/CSS/JS/JSON）を配信中のものと比較し、
+  異なっていればキャッシュを破棄して最新版を読み込み直す。
 
-ローカルで開く場合:
+### ファイル構成
+
+```
+index.html               画面の骨組みだけ
+style.css                スタイル
+js/app.js                起点：ヘッダー・画面の切り替え・起動
+js/store.js              保存データ(localStorage)と画面状態
+js/ui.js                 DOM組み立て(h)・アイコン・候補付き入力欄
+js/screen-record.js      記録の入力フォーム（新規・編集の兼用）
+js/screen-history.js     履歴一覧・CSV出力・全履歴削除
+js/screen-settings.js    通貨設定・候補（支払方法/場所）の管理
+js/site.js               QRコード・更新チェック・Service Worker 登録
+service-worker.js        キャッシュ制御
+```
+
+state を書き換える処理は `js/store.js` の更新関数（`setRecords` / `setCandidates` /
+`addCandidate` / `updateSettings`）に集約してあり、保存漏れが起きないようにしている。
+
+### ローカルでの動かし方
+
+ES モジュールを使っているため、`index.html` を直接開くのではなくローカルサーバー経由で開く。
 
 ```bash
 python -m http.server 8000   # または npx serve .
