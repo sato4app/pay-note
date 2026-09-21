@@ -61,11 +61,63 @@
       });
     };
 
+    // 「＋ 新規追加」を選んだことを示す、候補と衝突しない内部値
+    const NEW_ENTRY = '__NEW_ENTRY__';
+
+    // 候補からの選択と新規入力を切り替えられる入力欄
+    function ComboField({ label, options, value, onChange, isNew, setIsNew, placeholder }) {
+      const useTextInput = isNew || options.length === 0;
+
+      return (
+        <div>
+          <label className="block text-sm font-medium mb-1 text-gray-700">{label}</label>
+          {useTextInput ? (
+            <div className="flex gap-1">
+              <input
+                type="text"
+                value={value}
+                onChange={e => onChange(e.target.value)}
+                className="flex-1 min-w-0 border rounded-lg p-2"
+                placeholder={placeholder}
+              />
+              {options.length > 0 && (
+                <button
+                  type="button"
+                  onClick={() => { setIsNew(false); onChange(''); }}
+                  title="候補から選択に戻る"
+                  className="shrink-0 border rounded-lg px-2 text-sm text-gray-600 hover:bg-gray-100"
+                >戻る</button>
+              )}
+            </div>
+          ) : (
+            <select
+              value={options.includes(value) ? value : ''}
+              onChange={e => {
+                if (e.target.value === NEW_ENTRY) {
+                  setIsNew(true);
+                  onChange('');
+                } else {
+                  onChange(e.target.value);
+                }
+              }}
+              className="w-full border rounded-lg p-2 bg-white"
+            >
+              <option value="">候補から選択</option>
+              {options.map(o => <option key={o} value={o}>{o}</option>)}
+              <option value={NEW_ENTRY}>＋ 新規追加…</option>
+            </select>
+          )}
+        </div>
+      );
+    }
+
     function InputScreen({ records, setRecords, cards, setCards, places, setPlaces, settings }) {
       const [datetime, setDatetime] = useState(todayLocal());
       const [place, setPlace] = useState('');
       const [amount, setAmount] = useState('');
       const [cardName, setCardName] = useState(cards[0] || '');
+      const [placeIsNew, setPlaceIsNew] = useState(false);
+      const [cardIsNew, setCardIsNew] = useState(false);
       const [message, setMessage] = useState(null);
 
       useEffect(() => {
@@ -96,6 +148,8 @@
 
         setMessage({ type: 'success', text: '記録しました' });
         setPlace('');
+        setPlaceIsNew(false);
+        setCardIsNew(false);
         setAmount('');
         setDatetime(todayLocal());
         setTimeout(() => setMessage(null), 2000);
@@ -116,26 +170,15 @@
               />
             </div>
             <div className="w-7/12">
-              <label className="block text-sm font-medium mb-1 text-gray-700">場所</label>
-              <div className="space-y-2">
-                {places.length > 0 && (
-                  <select
-                    value={places.includes(place) ? place : ''}
-                    onChange={e => setPlace(e.target.value)}
-                    className="w-full border rounded-lg p-2 bg-white"
-                  >
-                    <option value="">候補から選択</option>
-                    {places.map(p => <option key={p} value={p}>{p}</option>)}
-                  </select>
-                )}
-                <input
-                  type="text"
-                  value={place}
-                  onChange={e => setPlace(e.target.value)}
-                  className="w-full border rounded-lg p-2"
-                  placeholder="または入力"
-                />
-              </div>
+              <ComboField
+                label="場所"
+                options={places}
+                value={place}
+                onChange={setPlace}
+                isNew={placeIsNew}
+                setIsNew={setPlaceIsNew}
+                placeholder="新しい場所"
+              />
             </div>
           </div>
 
@@ -155,26 +198,15 @@
               />
             </div>
             <div className="w-7/12">
-              <label className="block text-sm font-medium mb-1 text-gray-700">支払方法</label>
-              <div className="space-y-2">
-                {cards.length > 0 && (
-                  <select
-                    value={cards.includes(cardName) ? cardName : ''}
-                    onChange={e => setCardName(e.target.value)}
-                    className="w-full border rounded-lg p-2 bg-white"
-                  >
-                    <option value="">候補から選択</option>
-                    {cards.map(c => <option key={c} value={c}>{c}</option>)}
-                  </select>
-                )}
-                <input
-                  type="text"
-                  value={cardName}
-                  onChange={e => setCardName(e.target.value)}
-                  className="w-full border rounded-lg p-2"
-                  placeholder="または入力"
-                />
-              </div>
+              <ComboField
+                label="支払方法"
+                options={cards}
+                value={cardName}
+                onChange={setCardName}
+                isNew={cardIsNew}
+                setIsNew={setCardIsNew}
+                placeholder="新しい支払方法"
+              />
             </div>
           </div>
 
