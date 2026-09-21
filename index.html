@@ -61,7 +61,7 @@
       });
     };
 
-    function InputScreen({ records, setRecords, cards, places, setPlaces, settings }) {
+    function InputScreen({ records, setRecords, cards, setCards, places, setPlaces, settings }) {
       const [datetime, setDatetime] = useState(todayLocal());
       const [place, setPlace] = useState('');
       const [amount, setAmount] = useState('');
@@ -75,19 +75,23 @@
       const handleSave = () => {
         if (!place.trim()) { setMessage({ type: 'error', text: '場所を入力してください' }); return; }
         if (!amount || Number(amount) <= 0) { setMessage({ type: 'error', text: '金額を入力してください' }); return; }
-        if (!cardName) { setMessage({ type: 'error', text: 'カードを選択してください' }); return; }
+        if (!cardName.trim()) { setMessage({ type: 'error', text: '支払方法を入力してください' }); return; }
 
         const newRecord = {
           id: Date.now().toString() + Math.random().toString(36).slice(2, 6),
           datetime,
           place: place.trim(),
           amount: Number(amount),
-          cardName
+          cardName: cardName.trim()
         };
         setRecords([newRecord, ...records]);
 
         if (!places.includes(place.trim())) {
           setPlaces([...places, place.trim()]);
+        }
+
+        if (!cards.includes(cardName.trim())) {
+          setCards([...cards, cardName.trim()]);
         }
 
         setMessage({ type: 'success', text: '記録しました' });
@@ -102,7 +106,7 @@
           <h2 className="text-lg font-bold text-gray-700">カード使用を記録</h2>
 
           <div className="flex gap-2">
-            <div className="w-1/2">
+            <div className="w-5/12">
               <label className="block text-sm font-medium mb-1 text-gray-700">日付</label>
               <input
                 type="date"
@@ -111,7 +115,7 @@
                 className="w-full border rounded-lg p-2"
               />
             </div>
-            <div className="w-1/2">
+            <div className="w-7/12">
               <label className="block text-sm font-medium mb-1 text-gray-700">場所</label>
               <div className="space-y-2">
                 {places.length > 0 && (
@@ -136,7 +140,7 @@
           </div>
 
           <div className="flex gap-2">
-            <div className="flex-1">
+            <div className="w-5/12">
               <label className="block text-sm font-medium mb-1 text-gray-700">
                 金額（{settings.currency}）
               </label>
@@ -150,21 +154,27 @@
                 placeholder="0"
               />
             </div>
-            <div className="flex-1">
-              <label className="block text-sm font-medium mb-1 text-gray-700">カード</label>
-              {cards.length === 0 ? (
-                <p className="text-sm text-red-600 p-2 bg-red-50 rounded">
-                  先に設定画面でカードを登録してください
-                </p>
-              ) : (
-                <select
+            <div className="w-7/12">
+              <label className="block text-sm font-medium mb-1 text-gray-700">支払方法</label>
+              <div className="space-y-2">
+                {cards.length > 0 && (
+                  <select
+                    value={cards.includes(cardName) ? cardName : ''}
+                    onChange={e => setCardName(e.target.value)}
+                    className="w-full border rounded-lg p-2 bg-white"
+                  >
+                    <option value="">候補から選択</option>
+                    {cards.map(c => <option key={c} value={c}>{c}</option>)}
+                  </select>
+                )}
+                <input
+                  type="text"
                   value={cardName}
                   onChange={e => setCardName(e.target.value)}
-                  className="w-full border rounded-lg p-2 bg-white"
-                >
-                  {cards.map(c => <option key={c} value={c}>{c}</option>)}
-                </select>
-              )}
+                  className="w-full border rounded-lg p-2"
+                  placeholder="または入力"
+                />
+              </div>
             </div>
           </div>
 
@@ -176,8 +186,7 @@
 
           <button
             onClick={handleSave}
-            disabled={cards.length === 0}
-            className="w-full bg-blue-500 hover:bg-blue-600 text-white py-3 rounded-lg font-bold disabled:bg-gray-300 disabled:cursor-not-allowed"
+            className="w-full bg-blue-500 hover:bg-blue-600 text-white py-3 rounded-lg font-bold"
           >
             記録する
           </button>
@@ -206,7 +215,7 @@
       }, [grouped]);
 
       const handleExport = () => {
-        const header = '日時,場所,金額,カード名\n';
+        const header = '日時,場所,金額,支払方法\n';
         const rows = [...records]
           .sort((a, b) => a.datetime.localeCompare(b.datetime))
           .map(r => {
@@ -294,7 +303,7 @@
       };
 
       const removeCard = (c) => {
-        if (confirm(`カード「${c}」を削除しますか？`)) {
+        if (confirm(`支払方法「${c}」を削除しますか？`)) {
           setCards(cards.filter(x => x !== c));
         }
       };
@@ -345,14 +354,14 @@
           </section>
 
           <section className="bg-white p-4 rounded-lg shadow space-y-3">
-            <h3 className="font-bold text-gray-700">カード管理</h3>
+            <h3 className="font-bold text-gray-700">支払方法管理</h3>
             <div className="flex gap-2">
               <input
                 type="text"
                 value={newCard}
                 onChange={e => setNewCard(e.target.value)}
                 onKeyDown={e => e.key === 'Enter' && addCard()}
-                placeholder="カード名"
+                placeholder="支払方法名"
                 className="flex-1 border rounded p-2"
               />
               <button
@@ -367,7 +376,9 @@
                   <button onClick={() => removeCard(c)} className="text-red-500 hover:text-red-700 text-sm">削除</button>
                 </li>
               ))}
-              {cards.length === 0 && <li className="py-2 text-gray-500 text-sm">未登録</li>}
+              {cards.length === 0 && (
+                <li className="py-2 text-gray-500 text-sm">未登録（記録時に自動登録されます）</li>
+              )}
             </ul>
           </section>
 
@@ -446,7 +457,7 @@
             {tab === 'input' && (
               <InputScreen
                 records={records} setRecords={setRecords}
-                cards={cards}
+                cards={cards} setCards={setCards}
                 places={places} setPlaces={setPlaces}
                 settings={settings}
               />
