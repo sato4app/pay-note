@@ -53,6 +53,12 @@
       return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
     };
 
+    // 旧バージョンの日時付きデータ(datetime)を日付のみに正規化する
+    const normalizeRecord = ({ datetime, ...r }) => ({
+      ...r,
+      date: (r.date || datetime || '').slice(0, 10)
+    });
+
     const formatAmount = (amount, settings) => {
       const n = Number(amount);
       return n.toLocaleString('ja-JP', {
@@ -112,7 +118,7 @@
     }
 
     function InputScreen({ records, setRecords, cards, setCards, places, setPlaces, settings }) {
-      const [datetime, setDatetime] = useState(todayLocal());
+      const [date, setDate] = useState(todayLocal());
       const [place, setPlace] = useState('');
       const [amount, setAmount] = useState('');
       const [cardName, setCardName] = useState(cards[0] || '');
@@ -131,7 +137,7 @@
 
         const newRecord = {
           id: Date.now().toString() + Math.random().toString(36).slice(2, 6),
-          datetime,
+          date,
           place: place.trim(),
           amount: Number(amount),
           cardName: cardName.trim()
@@ -151,7 +157,7 @@
         setPlaceIsNew(false);
         setCardIsNew(false);
         setAmount('');
-        setDatetime(todayLocal());
+        setDate(todayLocal());
         setTimeout(() => setMessage(null), 2000);
       };
 
@@ -164,8 +170,8 @@
               <label className="block text-sm font-medium mb-1 text-gray-700">日付</label>
               <input
                 type="date"
-                value={datetime}
-                onChange={e => setDatetime(e.target.value)}
+                value={date}
+                onChange={e => setDate(e.target.value)}
                 className="w-full border rounded-lg p-2"
               />
             </div>
@@ -228,10 +234,10 @@
 
     function HistoryScreen({ records, setRecords, settings }) {
       const grouped = useMemo(() => {
-        const sorted = [...records].sort((a, b) => b.datetime.localeCompare(a.datetime));
+        const sorted = [...records].sort((a, b) => b.date.localeCompare(a.date));
         const groups = {};
         sorted.forEach(r => {
-          const month = r.datetime.slice(0, 7);
+          const month = r.date.slice(0, 7);
           if (!groups[month]) groups[month] = [];
           groups[month].push(r);
         });
@@ -247,14 +253,13 @@
       }, [grouped]);
 
       const handleExport = () => {
-        const header = '日時,場所,金額,支払方法\n';
+        const header = '日付,場所,金額,支払方法\n';
         const rows = [...records]
-          .sort((a, b) => a.datetime.localeCompare(b.datetime))
+          .sort((a, b) => a.date.localeCompare(b.date))
           .map(r => {
-            const dt = r.datetime.replace('T', ' ');
             const escape = s => `"${String(s).replace(/"/g, '""')}"`;
             const amount = Number(r.amount).toFixed(settings.decimalPlaces);
-            return `${dt},${escape(r.place)},${amount},${escape(r.cardName)}`;
+            return `${r.date},${escape(r.place)},${amount},${escape(r.cardName)}`;
           })
           .join('\n');
         const csv = '﻿' + header + rows + '\n';
@@ -299,7 +304,7 @@
                   {recs.map(r => (
                     <div key={r.id} className="p-3 flex justify-between items-start gap-2">
                       <div className="flex-1 min-w-0">
-                        <div className="text-xs text-gray-500">{r.datetime.replace('T', ' ')}</div>
+                        <div className="text-xs text-gray-500">{r.date}</div>
                         <div className="font-medium truncate">{r.place}</div>
                         <div className="text-xs text-gray-600">{r.cardName}</div>
                       </div>
@@ -448,7 +453,7 @@
 
     function App() {
       const [tab, setTab] = useState('input');
-      const [records, setRecords] = useState(() => load(STORAGE_KEYS.records, []));
+      const [records, setRecords] = useState(() => load(STORAGE_KEYS.records, []).map(normalizeRecord));
       const [cards, setCards] = useState(() => load(STORAGE_KEYS.cards, []));
       const [places, setPlaces] = useState(() => load(STORAGE_KEYS.places, []));
       const [settings, setSettings] = useState(() => ({ ...DEFAULT_SETTINGS, ...load(STORAGE_KEYS.settings, {}) }));
