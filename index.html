@@ -184,6 +184,21 @@
     }
     .csv-btn:hover { background: var(--green-dark); }
     .csv-btn:disabled { background: var(--gray-300); cursor: default; }
+    .btn-group { display: flex; gap: 8px; }
+    .plain-btn {
+      padding: 8px 12px;
+      border: 1px solid var(--gray-300);
+      border-radius: var(--radius);
+      background: #fff;
+      color: var(--gray-600);
+      font-size: 14px;
+      cursor: pointer;
+    }
+    .plain-btn:hover { background: var(--gray-100); }
+    .plain-btn:disabled { color: var(--gray-300); cursor: default; }
+    .plain-btn.is-danger { color: var(--red); }
+    .form-actions { display: flex; gap: 8px; }
+    .form-actions .plain-btn { flex: 1; }
     .message { padding: 8px; border-radius: 6px; text-align: center; }
     .message.is-success { background: #dcfce7; color: #166534; }
     .message.is-error { background: #fee2e2; color: #991b1b; }
@@ -224,9 +239,10 @@
       border: 0;
       background: none;
       font-size: 12px;
-      color: var(--red);
+      color: var(--blue);
       cursor: pointer;
     }
+    .link-btn.is-danger { color: var(--red); }
 
     /* ---- 設定 ---- */
     .card {
@@ -345,6 +361,7 @@
 
     const state = {
       tab: 'input',
+      editingId: null,
       records: load(STORAGE_KEYS.records, []).map(normalizeRecord),
       cards: load(STORAGE_KEYS.cards, []),
       places: load(STORAGE_KEYS.places, []),
@@ -434,22 +451,25 @@
 
     /* ============ 入力画面 ============ */
 
-    function inputScreen(flash) {
+    // record を渡すと編集、渡さなければ新規記録のフォームになる
+    function recordForm(record, flash) {
       const dateId = nextId();
       const amountId = nextId();
       const decimals = state.settings.decimalPlaces;
 
-      const dateInput = h('input', { type: 'date', id: dateId, value: todayLocal() });
+      const dateInput = h('input', { type: 'date', id: dateId, value: record ? record.date : todayLocal() });
       const amountInput = h('input', {
         type: 'number',
         id: amountId,
         class: 'amount',
         placeholder: '0',
+        value: record ? String(record.amount) : '',
         inputmode: decimals > 0 ? 'decimal' : 'numeric',
         step: decimals > 0 ? Math.pow(10, -decimals).toFixed(decimals) : '1'
       });
-      const placeCombo = comboField('場所', '店名などを入力', state.places, '');
-      const cardCombo = comboField('支払方法', 'カード名などを入力', state.cards, state.cards[0] || '');
+      const placeCombo = comboField('場所', '店名などを入力', state.places, record ? record.place : '');
+      const cardCombo = comboField('支払方法', 'カード名などを入力', state.cards,
+        record ? record.cardName : (state.cards[0] || ''));
 
       const message = h('div', { class: 'message', hidden: true });
       let messageTimer = null;
@@ -470,13 +490,16 @@
         if (!amount || Number(amount) <= 0) return showMessage('error', '金額を入力してください');
         if (!cardName) return showMessage('error', '支払方法を入力してください');
 
-        state.records = [{
-          id: Date.now().toString() + Math.random().toString(36).slice(2, 6),
-          date: dateInput.value,
-          place,
-          amount: Number(amount),
-          cardName
-        }, ...state.records];
+        const values = { date: dateInput.value, place, amount: Number(amount), cardName };
+
+        if (record) {
+          state.records = state.records.map(r => (r.id === record.id ? { ...r, ...values } : r));
+        } else {
+          state.records = [{
+            id: Date.now().toString() + Math.random().toString(36).slice(2, 6),
+            ...values
+          }, ...state.records];
+        }
         save(STORAGE_KEYS.records, state.records);
 
         if (!state.places.includes(place)) {
@@ -488,12 +511,31 @@
           save(STORAGE_KEYS.cards, state.cards);
         }
 
-        // 入力欄を初期化するため画面ごと組み直し、成功メッセージだけ引き継ぐ
-        render({ type: 'success', text: '記録しました' });
+        if (record) {
+          // 編集を終えて履歴一覧へ戻る
+          state.editingId = null;
+          render();
+        } else {
+          // 入力欄を初期化するため画面ごと組み直し、成功メッセージだけ引き継ぐ
+          render({ type: 'success', text: '記録しました' });
+        }
+      };
+
+      const handleDelete = () => {
+        if (!confirm('この記録を削除しますか？')) return;
+        state.records = state.records.filter(r => r.id !== record.id);
+        save(STORAGE_KEYS.records, state.records);
+        state.editingId = null;
+        render();
+      };
+
+      const closeEdit = () => {
+        state.editingId = null;
+        render();
       };
 
       const screen = h('div', { class: 'screen input-screen' },
-        h('h2', { text: 'カード使用を記録' }),
+        h('h2', { text: record ? '記録を編集' : 'カード使用を記録' }),
         h('div', { class: 'field' }, h('label', { for: dateId, text: '日付' }), dateInput),
         h('div', { class: 'field' },
           h('label', { for: amountId, text: `金額（${state.settings.currency}）` }),
@@ -502,7 +544,15 @@
         placeCombo.node,
         cardCombo.node,
         message,
-        h('button', { class: 'primary-btn', text: '記録する', onclick: handleSave })
+        h('button', {
+          class: 'primary-btn',
+          text: record ? '更新する' : '記録する',
+          onclick: handleSave
+        }),
+        record && h('div', { class: 'form-actions' },
+          h('button', { class: 'plain-btn', text: 'キャンセル', onclick: closeEdit }),
+          h('button', { class: 'plain-btn is-danger', text: '削除', onclick: handleDelete })
+        )
       );
 
       if (flash) showMessage(flash.type, flash.text, true);
@@ -528,9 +578,9 @@
       URL.revokeObjectURL(url);
     }
 
-    function deleteRecord(id) {
-      if (!confirm('この記録を削除しますか？')) return;
-      state.records = state.records.filter(r => r.id !== id);
+    function clearAllRecords() {
+      if (!confirm(`全 ${state.records.length} 件の記録を削除しますか？この操作は取り消せません。`)) return;
+      state.records = [];
       save(STORAGE_KEYS.records, state.records);
       render();
     }
@@ -564,7 +614,11 @@
             ),
             h('div', { class: 'record-side' },
               h('div', { class: 'record-amount', text: `${formatAmount(r.amount)} ${state.settings.currency}` }),
-              h('button', { class: 'link-btn', text: '削除', onclick: () => deleteRecord(r.id) })
+              h('button', {
+                class: 'link-btn',
+                text: '編集',
+                onclick: () => { state.editingId = r.id; render(); }
+              })
             )
           ))
         );
@@ -573,12 +627,20 @@
       return h('div', { class: 'screen' },
         h('div', { class: 'row-between' },
           h('h2', { text: '履歴' }),
-          h('button', {
-            class: 'csv-btn',
-            text: 'CSV出力',
-            disabled: state.records.length === 0,
-            onclick: exportCsv
-          })
+          h('div', { class: 'btn-group' },
+            h('button', {
+              class: 'plain-btn',
+              text: '全履歴削除',
+              disabled: state.records.length === 0,
+              onclick: clearAllRecords
+            }),
+            h('button', {
+              class: 'csv-btn',
+              text: 'CSV出力',
+              disabled: state.records.length === 0,
+              onclick: exportCsv
+            })
+          )
         ),
         state.records.length === 0
           ? h('p', { class: 'empty', text: '記録がありません' })
@@ -610,7 +672,7 @@
             : items.map(item => h('li', {},
                 h('span', { text: item }),
                 h('button', {
-                  class: 'link-btn',
+                  class: 'link-btn is-danger',
                   text: '削除',
                   onclick: () => {
                     if (!confirm(`${itemLabel}「${item}」を削除しますか？`)) return;
@@ -771,7 +833,8 @@
         title: label,
         html: iconSvg(ICONS[key]),
         onclick: () => {
-          if (state.tab === key) return;
+          if (state.tab === key && !state.editingId) return;
+          state.editingId = null;
           state.tab = key;
           render();
         }
@@ -798,10 +861,14 @@
     const root = document.getElementById('root');
 
     function render(flash) {
+      const editing = state.editingId && state.records.find(r => r.id === state.editingId);
+      if (state.editingId && !editing) state.editingId = null;
+
       const screen =
+        editing ? recordForm(editing) :
         state.tab === 'history' ? historyScreen() :
         state.tab === 'settings' ? settingsScreen() :
-        inputScreen(flash);
+        recordForm(null, flash);
       root.replaceChildren(header(), h('main', {}, screen));
     }
 
