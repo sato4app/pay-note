@@ -1,4 +1,4 @@
-const CACHE_NAME = 'paynote-v2';
+const CACHE_NAME = 'paynote-v3';
 const CACHE_URLS = [
   './',
   './index.html',
@@ -26,6 +26,10 @@ self.addEventListener('activate', event => {
 
 self.addEventListener('fetch', event => {
   if (event.request.method !== 'GET') return;
+
+  // 更新チェック用の要求(_nc付き)はキャッシュを介さずネットワークへ通す
+  if (new URL(event.request.url).searchParams.has('_nc')) return;
+
   event.respondWith(
     caches.match(event.request).then(cached => {
       const fetchPromise = fetch(event.request).then(response => {
