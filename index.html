@@ -27,7 +27,7 @@
 <body class="bg-gray-50">
   <div id="root"></div>
   <script type="text/babel">
-    const { useState, useEffect, useMemo } = React;
+    const { useState, useEffect, useMemo, useRef } = React;
 
     const STORAGE_KEYS = {
       records: 'paynote_records',
@@ -68,51 +68,53 @@
       });
     };
 
-    // 「＋ 新規追加」を選んだことを示す、候補と衝突しない内部値
-    const NEW_ENTRY = '__NEW_ENTRY__';
+    // 直接入力でき、▼ から登録済みの候補も選べる入力欄
+    function ComboField({ label, options, value, onChange, placeholder }) {
+      const [open, setOpen] = useState(false);
+      const boxRef = useRef(null);
 
-    // 候補からの選択と新規入力を切り替えられる入力欄
-    function ComboField({ label, options, value, onChange, isNew, setIsNew, placeholder }) {
-      const useTextInput = isNew || options.length === 0;
+      // 候補一覧の外をタップしたら閉じる
+      useEffect(() => {
+        if (!open) return;
+        const onPointerDown = e => {
+          if (boxRef.current && !boxRef.current.contains(e.target)) setOpen(false);
+        };
+        document.addEventListener('pointerdown', onPointerDown);
+        return () => document.removeEventListener('pointerdown', onPointerDown);
+      }, [open]);
 
       return (
-        <div>
+        <div ref={boxRef} className="relative">
           <label className="block text-sm font-medium mb-1 text-gray-700">{label}</label>
-          {useTextInput ? (
-            <div className="flex gap-1">
-              <input
-                type="text"
-                value={value}
-                onChange={e => onChange(e.target.value)}
-                className="flex-1 min-w-0 border rounded-lg p-2"
-                placeholder={placeholder}
-              />
-              {options.length > 0 && (
-                <button
-                  type="button"
-                  onClick={() => { setIsNew(false); onChange(''); }}
-                  title="候補から選択に戻る"
-                  className="shrink-0 border rounded-lg px-2 text-sm text-gray-600 hover:bg-gray-100"
-                >戻る</button>
-              )}
-            </div>
-          ) : (
-            <select
-              value={options.includes(value) ? value : ''}
-              onChange={e => {
-                if (e.target.value === NEW_ENTRY) {
-                  setIsNew(true);
-                  onChange('');
-                } else {
-                  onChange(e.target.value);
-                }
-              }}
-              className="w-full border rounded-lg p-2 bg-white"
-            >
-              <option value="">候補から選択</option>
-              {options.map(o => <option key={o} value={o}>{o}</option>)}
-              <option value={NEW_ENTRY}>＋ 新規追加…</option>
-            </select>
+          <div className="flex">
+            <input
+              type="text"
+              value={value}
+              onChange={e => onChange(e.target.value)}
+              placeholder={placeholder}
+              className="flex-1 min-w-0 border rounded-l-lg p-2"
+            />
+            <button
+              type="button"
+              onClick={() => setOpen(o => !o)}
+              disabled={options.length === 0}
+              aria-label={`${label}の候補から選択`}
+              title={options.length === 0 ? '候補がありません' : '候補から選択'}
+              className="shrink-0 w-11 border border-l-0 rounded-r-lg bg-gray-100 text-gray-600 disabled:text-gray-300"
+            >▼</button>
+          </div>
+          {open && options.length > 0 && (
+            <ul className="absolute z-20 left-0 right-0 mt-1 max-h-56 overflow-auto bg-white border rounded-lg shadow-lg">
+              {options.map(o => (
+                <li key={o}>
+                  <button
+                    type="button"
+                    onClick={() => { onChange(o); setOpen(false); }}
+                    className={`w-full text-left px-3 py-2 hover:bg-blue-50 ${o === value ? 'bg-blue-50 font-medium' : ''}`}
+                  >{o}</button>
+                </li>
+              ))}
+            </ul>
           )}
         </div>
       );
@@ -123,8 +125,6 @@
       const [place, setPlace] = useState('');
       const [amount, setAmount] = useState('');
       const [cardName, setCardName] = useState(cards[0] || '');
-      const [placeIsNew, setPlaceIsNew] = useState(false);
-      const [cardIsNew, setCardIsNew] = useState(false);
       const [message, setMessage] = useState(null);
 
       useEffect(() => {
@@ -155,8 +155,6 @@
 
         setMessage({ type: 'success', text: '記録しました' });
         setPlace('');
-        setPlaceIsNew(false);
-        setCardIsNew(false);
         setAmount('');
         setDate(todayLocal());
         setTimeout(() => setMessage(null), 2000);
@@ -166,56 +164,46 @@
         <div className="p-4 space-y-4">
           <h2 className="text-lg font-bold text-gray-700">カード使用を記録</h2>
 
-          <div className="flex gap-2">
-            <div className="w-5/12">
-              <label className="block text-sm font-medium mb-1 text-gray-700">日付</label>
-              <input
-                type="date"
-                value={date}
-                onChange={e => setDate(e.target.value)}
-                className="w-full border rounded-lg p-2"
-              />
-            </div>
-            <div className="w-7/12">
-              <ComboField
-                label="場所"
-                options={places}
-                value={place}
-                onChange={setPlace}
-                isNew={placeIsNew}
-                setIsNew={setPlaceIsNew}
-                placeholder="新しい場所"
-              />
-            </div>
+          <div>
+            <label className="block text-sm font-medium mb-1 text-gray-700">日付</label>
+            <input
+              type="date"
+              value={date}
+              onChange={e => setDate(e.target.value)}
+              className="w-full border rounded-lg p-2"
+            />
           </div>
 
-          <div className="flex gap-2">
-            <div className="w-5/12">
-              <label className="block text-sm font-medium mb-1 text-gray-700">
-                金額（{settings.currency}）
-              </label>
-              <input
-                type="number"
-                inputMode={settings.decimalPlaces > 0 ? 'decimal' : 'numeric'}
-                step={settings.decimalPlaces > 0 ? Math.pow(10, -settings.decimalPlaces).toFixed(settings.decimalPlaces) : '1'}
-                value={amount}
-                onChange={e => setAmount(e.target.value)}
-                className="w-full border rounded-lg p-2 text-right text-lg"
-                placeholder="0"
-              />
-            </div>
-            <div className="w-7/12">
-              <ComboField
-                label="支払方法"
-                options={cards}
-                value={cardName}
-                onChange={setCardName}
-                isNew={cardIsNew}
-                setIsNew={setCardIsNew}
-                placeholder="新しい支払方法"
-              />
-            </div>
+          <div>
+            <label className="block text-sm font-medium mb-1 text-gray-700">
+              金額（{settings.currency}）
+            </label>
+            <input
+              type="number"
+              inputMode={settings.decimalPlaces > 0 ? 'decimal' : 'numeric'}
+              step={settings.decimalPlaces > 0 ? Math.pow(10, -settings.decimalPlaces).toFixed(settings.decimalPlaces) : '1'}
+              value={amount}
+              onChange={e => setAmount(e.target.value)}
+              className="w-full border rounded-lg p-2 text-right text-lg"
+              placeholder="0"
+            />
           </div>
+
+          <ComboField
+            label="場所"
+            options={places}
+            value={place}
+            onChange={setPlace}
+            placeholder="店名などを入力"
+          />
+
+          <ComboField
+            label="支払方法"
+            options={cards}
+            value={cardName}
+            onChange={setCardName}
+            placeholder="カード名などを入力"
+          />
 
           {message && (
             <div className={`p-2 rounded text-center ${message.type === 'success' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
