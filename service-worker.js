@@ -1,4 +1,4 @@
-const CACHE_NAME = 'paynote-v3';
+const CACHE_NAME = 'paynote-v4';
 const CACHE_URLS = [
   './',
   './index.html',

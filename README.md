@@ -12,7 +12,8 @@
 - **設定** … 通貨・支払方法・場所の管理
 
 設定の左の **QR** ボタンで、このサイトの URL を QR コードで表示する（他の端末から開く用）。
-QR 生成ライブラリは、ボタンを押した時にだけ CDN から読み込む。
+QR 生成ライブラリ（[qrcode-generator](https://github.com/kazuhikoarase/qrcode-generator)）だけは、
+このボタンを押した時にのみ CDN から読み込む。
 
 ### 入力
 
@@ -47,9 +48,10 @@ localStorage に保存する（キー: `paynote_records` / `paynote_cards` / `pa
 ### 動作環境・技術構成
 
 - 単一ファイル構成（`index.html`）。ビルド不要。
-- React 18 / Tailwind CSS / Babel Standalone を CDN から読み込む。
-- PWA 対応（`manifest.json` + `service-worker.js`）。ホーム画面に追加して単独アプリとして起動できる。
-  ただし上記 CDN はキャッシュ対象外のため、完全なオフライン起動には対応していない。
+- フレームワークを使わない素の JavaScript と CSS のみ。外部ライブラリの読み込みはない
+  （QR コード表示時を除く）。
+- PWA 対応（`manifest.json` + `service-worker.js`）。ホーム画面に追加して単独アプリとして起動でき、
+  2 回目以降はオフラインでも動作する。
 - ヘッダーの **PayNote** をタップすると更新チェックを行う（画面上の表示はなし）。
   配信中の `index.html` とキャッシュを比較し、異なっていればキャッシュを破棄して最新版を読み込み直す。
 
@@ -67,5 +69,5 @@ python -m http.server 8000   # または npx serve .
   ※ アプリアイコン（`icons/`）は生成AI で作成したもので、著作権を主張していない。
   MIT License はソースコードに対するものである。
 
-  なお、React・Tailwind CSS・Babel は CDN 経由で読み込んでおり、本リポジトリに含まれない
-  （本ライセンスの対象外。それぞれの提供元の利用条件に従う）。
+  なお、QR コード生成に使う qrcode-generator（MIT License）は CDN 経由で読み込んでおり、
+  本リポジトリには含まれない（本ライセンスの対象外。提供元の利用条件に従う）。

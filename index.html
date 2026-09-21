@@ -14,20 +14,297 @@
 
   <!-- Apple Touch Icon (iOS ホーム画面追加用) -->
   <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
-  <script src="https://cdn.tailwindcss.com"></script>
-  <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
-  <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
-  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
   <style>
-    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Hiragino Kaku Gothic ProN', sans-serif; }
-    input, select { font-size: 16px; }
-    .qr-code svg { width: 100%; height: auto; display: block; }
+    :root {
+      --blue: #3b82f6;
+      --blue-dark: #2563eb;
+      --blue-pale: #eff6ff;
+      --green: #22c55e;
+      --green-dark: #16a34a;
+      --gray-50: #f9fafb;
+      --gray-100: #f3f4f6;
+      --gray-200: #e5e7eb;
+      --gray-300: #d1d5db;
+      --gray-500: #6b7280;
+      --gray-600: #4b5563;
+      --gray-700: #374151;
+      --red: #ef4444;
+      --radius: 8px;
+      --shadow: 0 1px 3px rgba(0, 0, 0, .1), 0 1px 2px rgba(0, 0, 0, .06);
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      background: var(--gray-50);
+      color: var(--gray-700);
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Hiragino Kaku Gothic ProN', sans-serif;
+    }
+
+    /* iOS で入力時に拡大されないよう 16px 以上にする */
+    input, select, button { font-family: inherit; font-size: 16px; }
+
+    /* ---- ヘッダー ---- */
+    .app-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 8px;
+      padding: 12px 16px;
+      background: var(--blue);
+      color: #fff;
+      box-shadow: var(--shadow);
+    }
+    .app-header h1 {
+      margin: 0;
+      font-size: 20px;
+      user-select: none;
+      -webkit-user-select: none;
+    }
+    .app-header nav { display: flex; align-items: center; gap: 4px; }
+    .icon-btn {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 40px;
+      height: 40px;
+      padding: 8px;
+      border: 0;
+      border-radius: var(--radius);
+      background: transparent;
+      color: #fff;
+      cursor: pointer;
+    }
+    .icon-btn:hover { background: rgba(255, 255, 255, .12); }
+    .icon-btn.is-active { background: rgba(255, 255, 255, .25); }
+    .icon-btn svg { width: 24px; height: 24px; }
+    .qr-btn { font-size: 14px; font-weight: 700; }
+
+    /* ---- 画面共通 ---- */
+    .screen {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+      padding: 16px;
+    }
+    .screen h2 { margin: 0; font-size: 18px; }
+    .row-between { display: flex; justify-content: space-between; align-items: center; }
+    .empty { padding: 32px 0; text-align: center; color: var(--gray-500); }
+
+    /* ---- 入力欄 ---- */
+    .field > label {
+      display: block;
+      margin-bottom: 4px;
+      font-size: 14px;
+      font-weight: 500;
+    }
+    .field input, .field select {
+      width: 100%;
+      padding: 8px;
+      border: 1px solid var(--gray-300);
+      border-radius: var(--radius);
+      background: #fff;
+      color: inherit;
+    }
+    .field input.amount { text-align: right; font-size: 18px; }
+
+    /* ---- 候補付き入力欄 ---- */
+    .combo { position: relative; }
+    .combo-row { display: flex; }
+    .combo-row input[type="text"] { border-radius: var(--radius) 0 0 var(--radius); }
+    .combo-toggle {
+      flex: none;
+      width: 44px;
+      border: 1px solid var(--gray-300);
+      border-left: 0;
+      border-radius: 0 var(--radius) var(--radius) 0;
+      background: var(--gray-100);
+      color: var(--gray-600);
+      cursor: pointer;
+    }
+    .combo-toggle:disabled { color: var(--gray-300); cursor: default; }
+    .combo-list {
+      position: absolute;
+      top: 100%;
+      left: 0;
+      right: 0;
+      z-index: 20;
+      max-height: 224px;
+      margin: 4px 0 0;
+      padding: 0;
+      overflow-y: auto;
+      list-style: none;
+      background: #fff;
+      border: 1px solid var(--gray-200);
+      border-radius: var(--radius);
+      box-shadow: 0 10px 15px rgba(0, 0, 0, .1);
+    }
+    .combo:not(.is-open) .combo-list { display: none; }
+    .combo-list button {
+      display: block;
+      width: 100%;
+      padding: 10px 12px;
+      border: 0;
+      background: transparent;
+      text-align: left;
+      color: inherit;
+      cursor: pointer;
+    }
+    .combo-list button:hover { background: var(--blue-pale); }
+    .combo-list button.is-current { background: var(--blue-pale); font-weight: 600; }
+
+    /* ---- ボタン・メッセージ ---- */
+    .primary-btn {
+      width: 100%;
+      padding: 12px;
+      border: 0;
+      border-radius: var(--radius);
+      background: var(--blue);
+      color: #fff;
+      font-weight: 700;
+      cursor: pointer;
+    }
+    .primary-btn:hover { background: var(--blue-dark); }
+    .csv-btn {
+      padding: 8px 16px;
+      border: 0;
+      border-radius: var(--radius);
+      background: var(--green);
+      color: #fff;
+      font-size: 14px;
+      font-weight: 500;
+      cursor: pointer;
+    }
+    .csv-btn:hover { background: var(--green-dark); }
+    .csv-btn:disabled { background: var(--gray-300); cursor: default; }
+    .message { padding: 8px; border-radius: 6px; text-align: center; }
+    .message.is-success { background: #dcfce7; color: #166534; }
+    .message.is-error { background: #fee2e2; color: #991b1b; }
+
+    /* ---- 履歴 ---- */
+    .month-card {
+      overflow: hidden;
+      background: #fff;
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+    }
+    .month-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 8px 16px;
+      background: var(--gray-100);
+    }
+    .month-head .month { font-weight: 700; }
+    .month-head .total { font-size: 14px; }
+    .record {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 8px;
+      padding: 12px;
+    }
+    .record + .record { border-top: 1px solid var(--gray-200); }
+    .record-main { flex: 1; min-width: 0; }
+    .record-date { font-size: 12px; color: var(--gray-500); }
+    .record-place { font-weight: 500; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+    .record-card { font-size: 12px; color: var(--gray-600); }
+    .record-side { flex: none; text-align: right; }
+    .record-amount { font-weight: 700; white-space: nowrap; }
+    .link-btn {
+      margin-top: 4px;
+      padding: 0;
+      border: 0;
+      background: none;
+      font-size: 12px;
+      color: var(--red);
+      cursor: pointer;
+    }
+
+    /* ---- 設定 ---- */
+    .card {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      padding: 16px;
+      background: #fff;
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+    }
+    .card h3 { margin: 0; font-size: 16px; }
+    .add-row { display: flex; gap: 8px; }
+    .add-row input {
+      flex: 1;
+      min-width: 0;
+      padding: 8px;
+      border: 1px solid var(--gray-300);
+      border-radius: 6px;
+    }
+    .add-btn {
+      flex: none;
+      padding: 8px 16px;
+      border: 0;
+      border-radius: 6px;
+      background: var(--blue);
+      color: #fff;
+      font-weight: 500;
+      cursor: pointer;
+    }
+    .add-btn:hover { background: var(--blue-dark); }
+    .list { margin: 0; padding: 0; list-style: none; }
+    .list li {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 8px 0;
+    }
+    .list li + li { border-top: 1px solid var(--gray-200); }
+    .list .note { font-size: 14px; color: var(--gray-500); }
+
+    /* ---- QRコード ---- */
+    .modal-overlay {
+      position: fixed;
+      inset: 0;
+      z-index: 50;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+      background: rgba(0, 0, 0, .5);
+    }
+    .modal {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      width: 100%;
+      max-width: 320px;
+      padding: 16px;
+      background: #fff;
+      border-radius: var(--radius);
+    }
+    .modal h3 { margin: 0; font-size: 16px; text-align: center; }
+    .modal .url { margin: 0; font-size: 12px; color: var(--gray-600); text-align: center; word-break: break-all; }
+    .modal .close-btn {
+      width: 100%;
+      padding: 8px;
+      border: 0;
+      border-radius: var(--radius);
+      background: var(--gray-200);
+      font-weight: 500;
+      cursor: pointer;
+    }
+    .modal .hint { padding: 32px 0; font-size: 14px; text-align: center; color: var(--gray-500); }
+    .modal .hint.is-error { color: var(--red); }
+    .qr-code svg { display: block; width: 100%; height: auto; }
   </style>
 </head>
-<body class="bg-gray-50">
+<body>
   <div id="root"></div>
-  <script type="text/babel">
-    const { useState, useEffect, useMemo, useRef } = React;
+  <script>
+    'use strict';
+
+    /* ============ 保存領域 ============ */
 
     const STORAGE_KEYS = {
       records: 'paynote_records',
@@ -48,399 +325,346 @@
     };
     const save = (key, value) => localStorage.setItem(key, JSON.stringify(value));
 
-    const todayLocal = () => {
-      const d = new Date();
-      const pad = n => String(n).padStart(2, '0');
-      return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
-    };
-
     // 旧バージョンの日時付きデータ(datetime)を日付のみに正規化する
     const normalizeRecord = ({ datetime, ...r }) => ({
       ...r,
       date: (r.date || datetime || '').slice(0, 10)
     });
 
-    const formatAmount = (amount, settings) => {
-      const n = Number(amount);
-      return n.toLocaleString('ja-JP', {
-        minimumFractionDigits: settings.decimalPlaces,
-        maximumFractionDigits: settings.decimalPlaces
-      });
+    const todayLocal = () => {
+      const d = new Date();
+      const pad = n => String(n).padStart(2, '0');
+      return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
     };
 
-    // 直接入力でき、▼ から登録済みの候補も選べる入力欄
-    function ComboField({ label, options, value, onChange, placeholder }) {
-      const [open, setOpen] = useState(false);
-      const boxRef = useRef(null);
+    const state = {
+      tab: 'input',
+      records: load(STORAGE_KEYS.records, []).map(normalizeRecord),
+      cards: load(STORAGE_KEYS.cards, []),
+      places: load(STORAGE_KEYS.places, []),
+      settings: { ...DEFAULT_SETTINGS, ...load(STORAGE_KEYS.settings, {}) }
+    };
 
-      // 候補一覧の外をタップしたら閉じる
-      useEffect(() => {
-        if (!open) return;
-        const onPointerDown = e => {
-          if (boxRef.current && !boxRef.current.contains(e.target)) setOpen(false);
-        };
-        document.addEventListener('pointerdown', onPointerDown);
-        return () => document.removeEventListener('pointerdown', onPointerDown);
-      }, [open]);
+    const formatAmount = amount => Number(amount).toLocaleString('ja-JP', {
+      minimumFractionDigits: state.settings.decimalPlaces,
+      maximumFractionDigits: state.settings.decimalPlaces
+    });
 
-      return (
-        <div ref={boxRef} className="relative">
-          <label className="block text-sm font-medium mb-1 text-gray-700">{label}</label>
-          <div className="flex">
-            <input
-              type="text"
-              value={value}
-              onChange={e => onChange(e.target.value)}
-              placeholder={placeholder}
-              className="flex-1 min-w-0 border rounded-l-lg p-2"
-            />
-            <button
-              type="button"
-              onClick={() => setOpen(o => !o)}
-              disabled={options.length === 0}
-              aria-label={`${label}の候補から選択`}
-              title={options.length === 0 ? '候補がありません' : '候補から選択'}
-              className="shrink-0 w-11 border border-l-0 rounded-r-lg bg-gray-100 text-gray-600 disabled:text-gray-300"
-            >▼</button>
-          </div>
-          {open && options.length > 0 && (
-            <ul className="absolute z-20 left-0 right-0 mt-1 max-h-56 overflow-auto bg-white border rounded-lg shadow-lg">
-              {options.map(o => (
-                <li key={o}>
-                  <button
-                    type="button"
-                    onClick={() => { onChange(o); setOpen(false); }}
-                    className={`w-full text-left px-3 py-2 hover:bg-blue-50 ${o === value ? 'bg-blue-50 font-medium' : ''}`}
-                  >{o}</button>
-                </li>
-              ))}
-            </ul>
-          )}
-        </div>
-      );
+    /* ============ DOM生成 ============ */
+
+    let uid = 0;
+    const nextId = () => 'f' + (++uid);
+
+    // h('div', { class: 'x', onclick: fn }, 子要素…) で要素を組み立てる
+    function h(tag, attrs, ...children) {
+      const node = document.createElement(tag);
+      for (const [key, value] of Object.entries(attrs || {})) {
+        if (value === null || value === undefined || value === false) continue;
+        if (key === 'class') node.className = value;
+        else if (key === 'text') node.textContent = value;
+        else if (key === 'html') node.innerHTML = value;
+        else if (key === 'value') node.value = value;
+        else if (key === 'disabled' || key === 'hidden') node[key] = true;
+        else if (key.startsWith('on')) node.addEventListener(key.slice(2), value);
+        else node.setAttribute(key, value);
+      }
+      for (const child of children.flat()) {
+        if (child === null || child === undefined || child === false) continue;
+        node.appendChild(typeof child === 'string' ? document.createTextNode(child) : child);
+      }
+      return node;
     }
 
-    function InputScreen({ records, setRecords, cards, setCards, places, setPlaces, settings }) {
-      const [date, setDate] = useState(todayLocal());
-      const [place, setPlace] = useState('');
-      const [amount, setAmount] = useState('');
-      const [cardName, setCardName] = useState(cards[0] || '');
-      const [message, setMessage] = useState(null);
+    const ICONS = {
+      input: 'M12 4v16m8-8H4',
+      history: 'M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z',
+      settings: 'M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065zM15 12a3 3 0 11-6 0 3 3 0 016 0z'
+    };
 
-      useEffect(() => {
-        if (!cardName && cards.length > 0) setCardName(cards[0]);
-      }, [cards]);
+    const iconSvg = path =>
+      `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="${path}"/></svg>`;
+
+    /* ============ 候補付き入力欄 ============ */
+
+    // 直接入力でき、▼ から登録済みの候補も選べる入力欄
+    function comboField(label, placeholder, options, initial) {
+      const id = nextId();
+      const input = h('input', { type: 'text', id, placeholder, value: initial || '' });
+      const toggle = h('button', {
+        type: 'button',
+        class: 'combo-toggle',
+        text: '▼',
+        'aria-label': label + 'の候補から選択',
+        title: options.length ? '候補から選択' : '候補がありません',
+        disabled: options.length === 0
+      });
+      const list = h('ul', { class: 'combo-list' },
+        options.map(option => h('li', {},
+          h('button', {
+            type: 'button',
+            class: option === initial ? 'is-current' : '',
+            text: option,
+            onclick: () => {
+              input.value = option;
+              root.classList.remove('is-open');
+            }
+          })
+        ))
+      );
+      const root = h('div', { class: 'field combo' },
+        h('label', { for: id, text: label }),
+        h('div', { class: 'combo-row' }, input, toggle),
+        list
+      );
+      toggle.addEventListener('click', () => root.classList.toggle('is-open'));
+      return { node: root, getValue: () => input.value };
+    }
+
+    // 候補一覧の外をタップしたら閉じる
+    document.addEventListener('pointerdown', event => {
+      document.querySelectorAll('.combo.is-open').forEach(combo => {
+        if (!combo.contains(event.target)) combo.classList.remove('is-open');
+      });
+    });
+
+    /* ============ 入力画面 ============ */
+
+    function inputScreen(flash) {
+      const dateId = nextId();
+      const amountId = nextId();
+      const decimals = state.settings.decimalPlaces;
+
+      const dateInput = h('input', { type: 'date', id: dateId, value: todayLocal() });
+      const amountInput = h('input', {
+        type: 'number',
+        id: amountId,
+        class: 'amount',
+        placeholder: '0',
+        inputmode: decimals > 0 ? 'decimal' : 'numeric',
+        step: decimals > 0 ? Math.pow(10, -decimals).toFixed(decimals) : '1'
+      });
+      const placeCombo = comboField('場所', '店名などを入力', state.places, '');
+      const cardCombo = comboField('支払方法', 'カード名などを入力', state.cards, state.cards[0] || '');
+
+      const message = h('div', { class: 'message', hidden: true });
+      let messageTimer = null;
+      const showMessage = (type, text, autoHide) => {
+        clearTimeout(messageTimer);
+        message.className = 'message is-' + type;
+        message.textContent = text;
+        message.hidden = false;
+        if (autoHide) messageTimer = setTimeout(() => { message.hidden = true; }, 2000);
+      };
 
       const handleSave = () => {
-        if (!place.trim()) { setMessage({ type: 'error', text: '場所を入力してください' }); return; }
-        if (!amount || Number(amount) <= 0) { setMessage({ type: 'error', text: '金額を入力してください' }); return; }
-        if (!cardName.trim()) { setMessage({ type: 'error', text: '支払方法を入力してください' }); return; }
+        const place = placeCombo.getValue().trim();
+        const cardName = cardCombo.getValue().trim();
+        const amount = amountInput.value;
 
-        const newRecord = {
+        if (!place) return showMessage('error', '場所を入力してください');
+        if (!amount || Number(amount) <= 0) return showMessage('error', '金額を入力してください');
+        if (!cardName) return showMessage('error', '支払方法を入力してください');
+
+        state.records = [{
           id: Date.now().toString() + Math.random().toString(36).slice(2, 6),
-          date,
-          place: place.trim(),
+          date: dateInput.value,
+          place,
           amount: Number(amount),
-          cardName: cardName.trim()
-        };
-        setRecords([newRecord, ...records]);
+          cardName
+        }, ...state.records];
+        save(STORAGE_KEYS.records, state.records);
 
-        if (!places.includes(place.trim())) {
-          setPlaces([...places, place.trim()]);
+        if (!state.places.includes(place)) {
+          state.places = [...state.places, place];
+          save(STORAGE_KEYS.places, state.places);
+        }
+        if (!state.cards.includes(cardName)) {
+          state.cards = [...state.cards, cardName];
+          save(STORAGE_KEYS.cards, state.cards);
         }
 
-        if (!cards.includes(cardName.trim())) {
-          setCards([...cards, cardName.trim()]);
-        }
-
-        setMessage({ type: 'success', text: '記録しました' });
-        setPlace('');
-        setAmount('');
-        setDate(todayLocal());
-        setTimeout(() => setMessage(null), 2000);
+        // 入力欄を初期化するため画面ごと組み直し、成功メッセージだけ引き継ぐ
+        render({ type: 'success', text: '記録しました' });
       };
 
-      return (
-        <div className="p-4 space-y-4">
-          <h2 className="text-lg font-bold text-gray-700">カード使用を記録</h2>
-
-          <div>
-            <label className="block text-sm font-medium mb-1 text-gray-700">日付</label>
-            <input
-              type="date"
-              value={date}
-              onChange={e => setDate(e.target.value)}
-              className="w-full border rounded-lg p-2"
-            />
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium mb-1 text-gray-700">
-              金額（{settings.currency}）
-            </label>
-            <input
-              type="number"
-              inputMode={settings.decimalPlaces > 0 ? 'decimal' : 'numeric'}
-              step={settings.decimalPlaces > 0 ? Math.pow(10, -settings.decimalPlaces).toFixed(settings.decimalPlaces) : '1'}
-              value={amount}
-              onChange={e => setAmount(e.target.value)}
-              className="w-full border rounded-lg p-2 text-right text-lg"
-              placeholder="0"
-            />
-          </div>
-
-          <ComboField
-            label="場所"
-            options={places}
-            value={place}
-            onChange={setPlace}
-            placeholder="店名などを入力"
-          />
-
-          <ComboField
-            label="支払方法"
-            options={cards}
-            value={cardName}
-            onChange={setCardName}
-            placeholder="カード名などを入力"
-          />
-
-          {message && (
-            <div className={`p-2 rounded text-center ${message.type === 'success' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
-              {message.text}
-            </div>
-          )}
-
-          <button
-            onClick={handleSave}
-            className="w-full bg-blue-500 hover:bg-blue-600 text-white py-3 rounded-lg font-bold"
-          >
-            記録する
-          </button>
-        </div>
+      const screen = h('div', { class: 'screen' },
+        h('h2', { text: 'カード使用を記録' }),
+        h('div', { class: 'field' }, h('label', { for: dateId, text: '日付' }), dateInput),
+        h('div', { class: 'field' },
+          h('label', { for: amountId, text: `金額（${state.settings.currency}）` }),
+          amountInput
+        ),
+        placeCombo.node,
+        cardCombo.node,
+        message,
+        h('button', { class: 'primary-btn', text: '記録する', onclick: handleSave })
       );
+
+      if (flash) showMessage(flash.type, flash.text, true);
+      return screen;
     }
 
-    function HistoryScreen({ records, setRecords, settings }) {
-      const grouped = useMemo(() => {
-        const sorted = [...records].sort((a, b) => b.date.localeCompare(a.date));
-        const groups = {};
-        sorted.forEach(r => {
+    /* ============ 履歴画面 ============ */
+
+    function exportCsv() {
+      const header = '日付,場所,金額,支払方法\n';
+      const escape = s => `"${String(s).replace(/"/g, '""')}"`;
+      const rows = [...state.records]
+        .sort((a, b) => a.date.localeCompare(b.date))
+        .map(r => {
+          const amount = Number(r.amount).toFixed(state.settings.decimalPlaces);
+          return `${r.date},${escape(r.place)},${amount},${escape(r.cardName)}`;
+        })
+        .join('\n');
+      const csv = '﻿' + header + rows + '\n';
+      const url = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8' }));
+      const a = h('a', { href: url, download: `paynote_${todayLocal()}.csv` });
+      a.click();
+      URL.revokeObjectURL(url);
+    }
+
+    function deleteRecord(id) {
+      if (!confirm('この記録を削除しますか？')) return;
+      state.records = state.records.filter(r => r.id !== id);
+      save(STORAGE_KEYS.records, state.records);
+      render();
+    }
+
+    function historyScreen() {
+      const groups = new Map();
+      [...state.records]
+        .sort((a, b) => b.date.localeCompare(a.date))
+        .forEach(r => {
           const month = r.date.slice(0, 7);
-          if (!groups[month]) groups[month] = [];
-          groups[month].push(r);
+          if (!groups.has(month)) groups.set(month, []);
+          groups.get(month).push(r);
         });
-        return groups;
-      }, [records]);
 
-      const monthlyTotals = useMemo(() => {
-        const totals = {};
-        Object.entries(grouped).forEach(([month, recs]) => {
-          totals[month] = recs.reduce((sum, r) => sum + Number(r.amount), 0);
-        });
-        return totals;
-      }, [grouped]);
+      const monthCards = [...groups].map(([month, records]) => {
+        const total = records.reduce((sum, r) => sum + Number(r.amount), 0);
+        return h('div', { class: 'month-card' },
+          h('div', { class: 'month-head' },
+            h('span', { class: 'month', text: month }),
+            h('span', { class: 'total' },
+              '合計 ',
+              h('b', { text: formatAmount(total) }),
+              ' ' + state.settings.currency
+            )
+          ),
+          records.map(r => h('div', { class: 'record' },
+            h('div', { class: 'record-main' },
+              h('div', { class: 'record-date', text: r.date }),
+              h('div', { class: 'record-place', text: r.place }),
+              h('div', { class: 'record-card', text: r.cardName })
+            ),
+            h('div', { class: 'record-side' },
+              h('div', { class: 'record-amount', text: `${formatAmount(r.amount)} ${state.settings.currency}` }),
+              h('button', { class: 'link-btn', text: '削除', onclick: () => deleteRecord(r.id) })
+            )
+          ))
+        );
+      });
 
-      const handleExport = () => {
-        const header = '日付,場所,金額,支払方法\n';
-        const rows = [...records]
-          .sort((a, b) => a.date.localeCompare(b.date))
-          .map(r => {
-            const escape = s => `"${String(s).replace(/"/g, '""')}"`;
-            const amount = Number(r.amount).toFixed(settings.decimalPlaces);
-            return `${r.date},${escape(r.place)},${amount},${escape(r.cardName)}`;
+      return h('div', { class: 'screen' },
+        h('div', { class: 'row-between' },
+          h('h2', { text: '履歴' }),
+          h('button', {
+            class: 'csv-btn',
+            text: 'CSV出力',
+            disabled: state.records.length === 0,
+            onclick: exportCsv
           })
-          .join('\n');
-        const csv = '﻿' + header + rows + '\n';
-        const blob = new Blob([csv], { type: 'text/csv;charset=utf-8' });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = `paynote_${new Date().toISOString().slice(0, 10)}.csv`;
-        a.click();
-        URL.revokeObjectURL(url);
-      };
-
-      const handleDelete = (id) => {
-        if (confirm('この記録を削除しますか？')) {
-          setRecords(records.filter(r => r.id !== id));
-        }
-      };
-
-      return (
-        <div className="p-4 space-y-4">
-          <div className="flex justify-between items-center">
-            <h2 className="text-lg font-bold text-gray-700">履歴</h2>
-            <button
-              onClick={handleExport}
-              disabled={records.length === 0}
-              className="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-lg text-sm font-medium disabled:bg-gray-300"
-            >CSV出力</button>
-          </div>
-
-          {records.length === 0 ? (
-            <p className="text-gray-500 text-center py-8">記録がありません</p>
-          ) : (
-            Object.entries(grouped).map(([month, recs]) => (
-              <div key={month} className="bg-white rounded-lg shadow overflow-hidden">
-                <div className="bg-gray-100 px-4 py-2 flex justify-between items-center">
-                  <span className="font-bold">{month}</span>
-                  <span className="text-sm">
-                    合計 <span className="font-bold">{formatAmount(monthlyTotals[month], settings)}</span> {settings.currency}
-                  </span>
-                </div>
-                <div className="divide-y">
-                  {recs.map(r => (
-                    <div key={r.id} className="p-3 flex justify-between items-start gap-2">
-                      <div className="flex-1 min-w-0">
-                        <div className="text-xs text-gray-500">{r.date}</div>
-                        <div className="font-medium truncate">{r.place}</div>
-                        <div className="text-xs text-gray-600">{r.cardName}</div>
-                      </div>
-                      <div className="text-right shrink-0">
-                        <div className="font-bold whitespace-nowrap">
-                          {formatAmount(r.amount, settings)} {settings.currency}
-                        </div>
-                        <button
-                          onClick={() => handleDelete(r.id)}
-                          className="text-xs text-red-500 hover:text-red-700 mt-1"
-                        >削除</button>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            ))
-          )}
-        </div>
+        ),
+        state.records.length === 0
+          ? h('p', { class: 'empty', text: '記録がありません' })
+          : monthCards
       );
     }
 
-    function SettingsScreen({ cards, setCards, places, setPlaces, settings, setSettings }) {
-      const [newCard, setNewCard] = useState('');
-      const [newPlace, setNewPlace] = useState('');
+    /* ============ 設定画面 ============ */
 
-      const addCard = () => {
-        const v = newCard.trim();
-        if (v && !cards.includes(v)) {
-          setCards([...cards, v]);
-          setNewCard('');
-        }
+    // 候補（支払方法・場所）の追加・削除をまとめた区画
+    function listSection(title, itemLabel, items, onChange) {
+      const input = h('input', { type: 'text', placeholder: itemLabel });
+      const add = () => {
+        const value = input.value.trim();
+        if (!value || items.includes(value)) return;
+        onChange([...items, value]);
       };
+      input.addEventListener('keydown', e => { if (e.key === 'Enter') add(); });
 
-      const removeCard = (c) => {
-        if (confirm(`支払方法「${c}」を削除しますか？`)) {
-          setCards(cards.filter(x => x !== c));
-        }
-      };
-
-      const addPlace = () => {
-        const v = newPlace.trim();
-        if (v && !places.includes(v)) {
-          setPlaces([...places, v]);
-          setNewPlace('');
-        }
-      };
-
-      const removePlace = (p) => {
-        if (confirm(`場所「${p}」を削除しますか？`)) {
-          setPlaces(places.filter(x => x !== p));
-        }
-      };
-
-      return (
-        <div className="p-4 space-y-6">
-          <h2 className="text-lg font-bold text-gray-700">設定</h2>
-
-          <section className="bg-white p-4 rounded-lg shadow space-y-3">
-            <h3 className="font-bold text-gray-700">通貨設定</h3>
-            <div>
-              <label className="block text-sm mb-1 text-gray-600">通貨単位</label>
-              <input
-                type="text"
-                value={settings.currency}
-                onChange={e => setSettings({ ...settings, currency: e.target.value })}
-                className="w-full border rounded p-2"
-                placeholder="例: 円, $, €"
-              />
-            </div>
-            <div>
-              <label className="block text-sm mb-1 text-gray-600">小数点以下の桁数</label>
-              <select
-                value={settings.decimalPlaces}
-                onChange={e => setSettings({ ...settings, decimalPlaces: Number(e.target.value) })}
-                className="w-full border rounded p-2 bg-white"
-              >
-                <option value="0">0（整数）</option>
-                <option value="1">1</option>
-                <option value="2">2</option>
-                <option value="3">3</option>
-              </select>
-            </div>
-          </section>
-
-          <section className="bg-white p-4 rounded-lg shadow space-y-3">
-            <h3 className="font-bold text-gray-700">支払方法管理</h3>
-            <div className="flex gap-2">
-              <input
-                type="text"
-                value={newCard}
-                onChange={e => setNewCard(e.target.value)}
-                onKeyDown={e => e.key === 'Enter' && addCard()}
-                placeholder="支払方法名"
-                className="flex-1 border rounded p-2"
-              />
-              <button
-                onClick={addCard}
-                className="bg-blue-500 hover:bg-blue-600 text-white px-4 rounded font-medium"
-              >追加</button>
-            </div>
-            <ul className="divide-y">
-              {cards.map(c => (
-                <li key={c} className="py-2 flex justify-between items-center">
-                  <span>{c}</span>
-                  <button onClick={() => removeCard(c)} className="text-red-500 hover:text-red-700 text-sm">削除</button>
-                </li>
-              ))}
-              {cards.length === 0 && (
-                <li className="py-2 text-gray-500 text-sm">未登録（記録時に自動登録されます）</li>
-              )}
-            </ul>
-          </section>
-
-          <section className="bg-white p-4 rounded-lg shadow space-y-3">
-            <h3 className="font-bold text-gray-700">場所管理</h3>
-            <div className="flex gap-2">
-              <input
-                type="text"
-                value={newPlace}
-                onChange={e => setNewPlace(e.target.value)}
-                onKeyDown={e => e.key === 'Enter' && addPlace()}
-                placeholder="場所名"
-                className="flex-1 border rounded p-2"
-              />
-              <button
-                onClick={addPlace}
-                className="bg-blue-500 hover:bg-blue-600 text-white px-4 rounded font-medium"
-              >追加</button>
-            </div>
-            <ul className="divide-y">
-              {places.map(p => (
-                <li key={p} className="py-2 flex justify-between items-center">
-                  <span>{p}</span>
-                  <button onClick={() => removePlace(p)} className="text-red-500 hover:text-red-700 text-sm">削除</button>
-                </li>
-              ))}
-              {places.length === 0 && (
-                <li className="py-2 text-gray-500 text-sm">未登録（記録時に自動登録されます）</li>
-              )}
-            </ul>
-          </section>
-        </div>
+      return h('section', { class: 'card' },
+        h('h3', { text: title }),
+        h('div', { class: 'add-row' },
+          input,
+          h('button', { class: 'add-btn', text: '追加', onclick: add })
+        ),
+        h('ul', { class: 'list' },
+          items.length === 0
+            ? h('li', {}, h('span', { class: 'note', text: '未登録（記録時に自動登録されます）' }))
+            : items.map(item => h('li', {},
+                h('span', { text: item }),
+                h('button', {
+                  class: 'link-btn',
+                  text: '削除',
+                  onclick: () => {
+                    if (!confirm(`${itemLabel}「${item}」を削除しますか？`)) return;
+                    onChange(items.filter(x => x !== item));
+                  }
+                })
+              ))
+        )
       );
     }
 
-    // ---- サイトのQRコード ----
+    function settingsScreen() {
+      const currencyId = nextId();
+      const decimalId = nextId();
+
+      const currencyInput = h('input', {
+        type: 'text',
+        id: currencyId,
+        value: state.settings.currency,
+        placeholder: '例: 円, $, €'
+      });
+      currencyInput.addEventListener('input', () => {
+        state.settings = { ...state.settings, currency: currencyInput.value };
+        save(STORAGE_KEYS.settings, state.settings);
+      });
+
+      const decimalSelect = h('select', { id: decimalId },
+        [['0', '0（整数）'], ['1', '1'], ['2', '2'], ['3', '3']].map(([value, label]) =>
+          h('option', { value, text: label })
+        )
+      );
+      decimalSelect.value = String(state.settings.decimalPlaces);
+      decimalSelect.addEventListener('change', () => {
+        state.settings = { ...state.settings, decimalPlaces: Number(decimalSelect.value) };
+        save(STORAGE_KEYS.settings, state.settings);
+      });
+
+      return h('div', { class: 'screen' },
+        h('h2', { text: '設定' }),
+        h('section', { class: 'card' },
+          h('h3', { text: '通貨設定' }),
+          h('div', { class: 'field' }, h('label', { for: currencyId, text: '通貨単位' }), currencyInput),
+          h('div', { class: 'field' }, h('label', { for: decimalId, text: '小数点以下の桁数' }), decimalSelect)
+        ),
+        listSection('支払方法管理', '支払方法', state.cards, next => {
+          state.cards = next;
+          save(STORAGE_KEYS.cards, state.cards);
+          render();
+        }),
+        listSection('場所管理', '場所', state.places, next => {
+          state.places = next;
+          save(STORAGE_KEYS.places, state.places);
+          render();
+        })
+      );
+    }
+
+    /* ============ サイトのQRコード ============ */
+
     const SITE_URL = new URL('.', location.href).href;
     const QR_SCRIPT_SRC = 'https://unpkg.com/qrcode-generator@1.4.4/qrcode.js';
     let qrScriptPromise = null;
@@ -450,8 +674,7 @@
       if (window.qrcode) return Promise.resolve();
       if (!qrScriptPromise) {
         qrScriptPromise = new Promise((resolve, reject) => {
-          const el = document.createElement('script');
-          el.src = QR_SCRIPT_SRC;
+          const el = h('script', { src: QR_SCRIPT_SRC });
           el.onload = resolve;
           el.onerror = () => { qrScriptPromise = null; reject(new Error('QRライブラリの読み込みに失敗')); };
           document.head.appendChild(el);
@@ -460,53 +683,38 @@
       return qrScriptPromise;
     };
 
-    function QrModal({ onClose }) {
-      const [svgTag, setSvgTag] = useState('');
-      const [failed, setFailed] = useState(false);
-
-      useEffect(() => {
-        let active = true;
-        loadQrScript()
-          .then(() => {
-            const qr = qrcode(0, 'M');   // 型番は自動判定、誤り訂正レベルM
-            qr.addData(SITE_URL);
-            qr.make();
-            if (active) setSvgTag(qr.createSvgTag({ cellSize: 8, margin: 2, scalable: true }));
-          })
-          .catch(() => { if (active) setFailed(true); });
-        return () => { active = false; };
-      }, []);
-
-      return (
-        <div
-          className="fixed inset-0 bg-black/50 flex items-center justify-center p-6 z-50"
-          onClick={onClose}
-        >
-          <div
-            className="bg-white rounded-lg p-4 w-full max-w-xs space-y-3"
-            onClick={e => e.stopPropagation()}
-          >
-            <h3 className="font-bold text-gray-700 text-center">このサイトのQRコード</h3>
-            {failed ? (
-              <p className="text-sm text-red-600 text-center py-8">
-                QRコードを生成できませんでした。通信環境を確認してください。
-              </p>
-            ) : svgTag ? (
-              <div className="qr-code" dangerouslySetInnerHTML={{ __html: svgTag }} />
-            ) : (
-              <p className="text-sm text-gray-500 text-center py-8">生成中…</p>
-            )}
-            <p className="text-xs text-gray-600 break-all text-center">{SITE_URL}</p>
-            <button
-              onClick={onClose}
-              className="w-full bg-gray-200 hover:bg-gray-300 rounded-lg py-2 font-medium"
-            >閉じる</button>
-          </div>
-        </div>
+    function openQrModal() {
+      const body = h('div', { class: 'hint', text: '生成中…' });
+      const close = () => overlay.remove();
+      const modal = h('div', { class: 'modal' },
+        h('h3', { text: 'このサイトのQRコード' }),
+        body,
+        h('p', { class: 'url', text: SITE_URL }),
+        h('button', { class: 'close-btn', text: '閉じる', onclick: close })
       );
+      const overlay = h('div', {
+        class: 'modal-overlay',
+        onclick: e => { if (e.target === overlay) close(); }
+      }, modal);
+      document.body.appendChild(overlay);
+
+      loadQrScript().then(() => {
+        const qr = qrcode(0, 'M');   // 型番は自動判定、誤り訂正レベルM
+        qr.addData(SITE_URL);
+        qr.make();
+        body.replaceWith(h('div', {
+          class: 'qr-code',
+          html: qr.createSvgTag({ cellSize: 8, margin: 2, scalable: true })
+        }));
+      }).catch(() => {
+        body.className = 'hint is-error';
+        body.textContent = 'QRコードを生成できませんでした。通信環境を確認してください。';
+      });
     }
 
-    // ---- 更新チェック（ヘッダーのタイトルをタップした時に実行。画面上の表示は行わない） ----
+    /* ============ 更新チェック ============ */
+    /* ヘッダーのタイトルをタップした時に実行。画面上の表示は行わない */
+
     let updateRequested = false;
     let reloading = false;
 
@@ -549,81 +757,50 @@
       }
     };
 
-    function App() {
-      const [tab, setTab] = useState('input');
-      const [showQr, setShowQr] = useState(false);
-      const [records, setRecords] = useState(() => load(STORAGE_KEYS.records, []).map(normalizeRecord));
-      const [cards, setCards] = useState(() => load(STORAGE_KEYS.cards, []));
-      const [places, setPlaces] = useState(() => load(STORAGE_KEYS.places, []));
-      const [settings, setSettings] = useState(() => ({ ...DEFAULT_SETTINGS, ...load(STORAGE_KEYS.settings, {}) }));
+    /* ============ 全体描画 ============ */
 
-      useEffect(() => save(STORAGE_KEYS.records, records), [records]);
-      useEffect(() => save(STORAGE_KEYS.cards, cards), [cards]);
-      useEffect(() => save(STORAGE_KEYS.places, places), [places]);
-      useEffect(() => save(STORAGE_KEYS.settings, settings), [settings]);
+    function header() {
+      const tabButton = (key, label) => h('button', {
+        class: 'icon-btn' + (state.tab === key ? ' is-active' : ''),
+        'aria-label': label,
+        title: label,
+        html: iconSvg(ICONS[key]),
+        onclick: () => {
+          if (state.tab === key) return;
+          state.tab = key;
+          render();
+        }
+      });
 
-      const TABS = [
-        ['input', '入力', 'M12 4v16m8-8H4'],
-        ['history', '履歴', 'M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z'],
-        ['settings', '設定', 'M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065zM15 12a3 3 0 11-6 0 3 3 0 016 0z']
-      ];
-
-      return (
-        <div className="min-h-screen">
-          <header className="bg-blue-500 text-white p-4 shadow flex justify-between items-center">
-            <h1 className="text-xl font-bold select-none" onClick={checkForUpdate}>PayNote</h1>
-            <nav className="flex gap-1 items-center">
-              {TABS.map(([key, label, path]) => (
-                <React.Fragment key={key}>
-                  {/* QRボタンは設定ボタンの左に置く */}
-                  {key === 'settings' && (
-                    <button
-                      onClick={() => setShowQr(true)}
-                      aria-label="QRコード"
-                      title="QRコード"
-                      className="w-10 p-2 rounded-lg transition-colors hover:bg-white/10 text-sm font-bold leading-6"
-                    >QR</button>
-                  )}
-                  <button
-                    onClick={() => setTab(key)}
-                    aria-label={label}
-                    title={label}
-                    className={`p-2 rounded-lg transition-colors ${tab === key ? 'bg-white/25' : 'hover:bg-white/10'}`}
-                  >
-                    <svg className="w-6 h-6" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" d={path} />
-                    </svg>
-                  </button>
-                </React.Fragment>
-              ))}
-            </nav>
-          </header>
-
-          <main>
-            {tab === 'input' && (
-              <InputScreen
-                records={records} setRecords={setRecords}
-                cards={cards} setCards={setCards}
-                places={places} setPlaces={setPlaces}
-                settings={settings}
-              />
-            )}
-            {tab === 'history' && (
-              <HistoryScreen records={records} setRecords={setRecords} settings={settings} />
-            )}
-            {tab === 'settings' && (
-              <SettingsScreen
-                cards={cards} setCards={setCards}
-                places={places} setPlaces={setPlaces}
-                settings={settings} setSettings={setSettings}
-              />
-            )}
-          </main>
-
-          {showQr && <QrModal onClose={() => setShowQr(false)} />}
-        </div>
+      return h('header', { class: 'app-header' },
+        h('h1', { text: 'PayNote', onclick: checkForUpdate }),
+        h('nav', {},
+          tabButton('input', '入力'),
+          tabButton('history', '履歴'),
+          // QRボタンは設定ボタンの左に置く
+          h('button', {
+            class: 'icon-btn qr-btn',
+            text: 'QR',
+            'aria-label': 'QRコード',
+            title: 'QRコード',
+            onclick: openQrModal
+          }),
+          tabButton('settings', '設定')
+        )
       );
     }
+
+    const root = document.getElementById('root');
+
+    function render(flash) {
+      const screen =
+        state.tab === 'history' ? historyScreen() :
+        state.tab === 'settings' ? settingsScreen() :
+        inputScreen(flash);
+      root.replaceChildren(header(), h('main', {}, screen));
+    }
+
+    render();
 
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', () => {
@@ -634,8 +811,6 @@
         if (updateRequested) reloadOnce();
       });
     }
-
-    ReactDOM.createRoot(document.getElementById('root')).render(<App />);
   </script>
 </body>
 </html>
